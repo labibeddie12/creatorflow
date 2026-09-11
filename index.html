@@ -95,6 +95,10 @@
     .video-frame{position:relative}
     @media(max-width:700px){.showcase-grid{grid-template-columns:repeat(2,1fr)!important;gap:10px!important}}
     .video-frame iframe{position:absolute!important;inset:0!important;left:0!important;top:0!important;margin:0!important;width:100%!important;height:100%!important}
+    .video-meta{display:none!important}
+    .video-frame{aspect-ratio:auto!important;height:0!important;padding-bottom:62.5%!important;position:relative!important;overflow:hidden}
+    .video-card.instagram .video-frame:not(.cf-portrait){padding-bottom:125%!important}
+    .video-frame.cf-portrait{padding-bottom:177.78%!important}
     .video-frame.cf-portrait{aspect-ratio:9/16!important}
     .cf-mute-btn{position:absolute;right:10px;bottom:10px;z-index:2;width:36px;height:36px;border-radius:50%;border:0;background:#171717cc;color:#fff;font-size:15px;display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(3px)}
     .cf-mute-btn:hover{background:var(--coral)}
