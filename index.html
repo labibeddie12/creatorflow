@@ -110,7 +110,8 @@
     onSnapshot(query(collection(vwDb,"showcaseVideos"),where("active","==",true)),s=>{cfVideoMap=new Map(s.docs.map(d=>{const x=d.data();return[x.sourceUrl,x]}));enhanceVideoCards()},()=>{});
     onSnapshot(doc(vwDb,"siteSettings","showcase"),s=>{cfHomepageLimit=s.data()?.homepageLimit||null;enhanceVideoCards()},()=>{});
     document.addEventListener("click",e=>{const btn=e.target.closest(".cf-mute-btn");if(!btn)return;const iframe=btn.closest(".video-frame")?.querySelector("iframe");if(!iframe)return;const muted=btn.dataset.muted==="true";iframe.contentWindow.postMessage(JSON.stringify({event:"command",func:muted?"unMute":"mute",args:[]}),"*");btn.dataset.muted=muted?"false":"true";btn.textContent=muted?"🔊":"🔇";btn.setAttribute("aria-label",muted?"Mute video":"Unmute video")});
-    document.addEventListener("DOMContentLoaded",()=>{enhanceVideoCards();const root=document.getElementById("root");if(root)new MutationObserver(enhanceVideoCards).observe(root,{childList:true,subtree:true})});
+    let cfVideoMutationTimer;
+    document.addEventListener("DOMContentLoaded",()=>{enhanceVideoCards();const root=document.getElementById("root");if(root)new MutationObserver(()=>{clearTimeout(cfVideoMutationTimer);cfVideoMutationTimer=setTimeout(enhanceVideoCards,150)}).observe(root,{childList:true,subtree:true})});
   </script>
   <script type="module">
     import{initializeApp,getApps}from"https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
