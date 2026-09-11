@@ -93,7 +93,8 @@
   </script>
   <style>
     .video-frame{overflow:hidden;position:relative}
-    .video-frame.cf-portrait{aspect-ratio:4/5!important}
+    .video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+    .video-frame.cf-portrait{aspect-ratio:9/16!important}
     .video-meta{display:none!important}
     @media(max-width:700px){.showcase-grid{grid-template-columns:repeat(2,1fr)!important;gap:10px!important}}
     .cf-mute-btn{position:absolute;right:10px;bottom:10px;z-index:2;width:36px;height:36px;border-radius:50%;border:0;background:#171717cc;color:#fff;font-size:15px;display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(3px)}
