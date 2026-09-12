@@ -38,6 +38,7 @@
     /* ---------- shell ---------- */
     .app{min-height:100vh}
     .sidebar{position:fixed;inset:0 auto 0 0;width:250px;background:var(--ink);color:#fff;padding:26px 16px;display:flex;flex-direction:column;z-index:20}
+    .nav-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
     .sidebar .brand{font-size:17px;padding:0 10px 26px}
     .nav-button{border:0;background:transparent;color:#c7bcac;border-radius:9px;padding:12px 13px;text-align:left;font-weight:700;margin:2px 0;width:100%;display:flex;align-items:center;transition:background .15s,color .15s;border-left:3px solid transparent}
     .nav-button.active{background:#2a241c;color:#fff;border-left-color:var(--purple)}
@@ -175,6 +176,7 @@
       .login-art{display:none}
       .sidebar{position:fixed;inset:auto 0 0;width:auto;height:72px;flex-direction:row;padding:8px;align-items:center;overflow-x:auto}
       .sidebar .brand,.admin-mini{display:none}
+      .nav-scroll{display:flex;flex-direction:row;flex:none;overflow:visible;min-height:auto}
       .nav-button{flex:0 0 76px;text-align:center;font-size:9px;padding:8px 4px;border-left:0;border-top:3px solid transparent}
       .nav-button.active{border-left-color:transparent;border-top-color:var(--purple)}
       .nav-button span{display:block;margin:auto}
@@ -210,7 +212,7 @@
     .inbox-thread-head{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
     .inbox-thread-head b{font-size:14px;display:block}
     .inbox-thread-head span{font-size:11px;color:var(--muted)}
-    .inbox-messages{flex:1;overflow-y:auto;padding:22px;display:flex;flex-direction:column;gap:8px;background:#fbf7f0}
+    .inbox-messages{flex:1;min-height:0;overflow-y:auto;padding:22px;display:flex;flex-direction:column;gap:8px;background:#fbf7f0}
     .inbox-bubble{max-width:65%;padding:10px 14px;border-radius:4px 15px 15px 15px;font-size:13px;line-height:1.5;background:var(--white);border:1px solid var(--line)}
     .inbox-bubble.mine{align-self:flex-end;background:var(--purple);color:#fff;border-radius:15px 4px 15px 15px;border:0}
     .inbox-bubble small{display:block;text-align:right;font-size:9px;opacity:.6;margin-top:5px}
@@ -230,7 +232,18 @@
     .inbox-reply-banner button{border:0;background:none;font-size:17px;color:var(--muted);cursor:pointer}
     .inbox-bubble .reply-quote{background:#0000000d;border-left:3px solid var(--purple);padding:5px 8px;margin-bottom:6px;font-size:11px;opacity:.85;border-radius:2px}
     .inbox-bubble.mine .reply-quote{background:#ffffff26;border-left-color:#fff}
-    @media(max-width:1000px){.inbox{grid-template-columns:1fr;height:auto}.inbox-list{max-height:280px}}
+    .inbox-back{display:none;border:0;background:none;font-size:20px;cursor:pointer;padding:4px 8px 4px 0;color:var(--ink)}
+    @media(max-width:1000px){
+      .inbox{grid-template-columns:1fr;height:calc(100vh - 160px)}
+      .inbox-list{max-height:none;display:block}
+      .inbox-thread{display:none}
+      .inbox.thread-open .inbox-list{display:none}
+      .inbox.thread-open .inbox-thread{display:flex}
+      .inbox-back{display:inline-block}
+    }
+    @media(max-width:720px){
+      .inbox{height:calc(100vh - 170px)}
+    }
   </style>
 </head>
 <body>
@@ -238,6 +251,7 @@
     <div class="login-art">
 <div class="brand">CREATOR<span>FLOW</span>
 </div>
+<div class="nav-scroll">
 <div>
 <h1>Run your creator business <em>from one place.</em>
 </h1>
@@ -310,6 +324,7 @@
 <span>♟</span> Users</button>
 <button class="nav-button" id="nav-team" data-view="team" hidden>
 <span>☺</span> Team &amp; Roles</button>
+</div>
 </div>
 <div class="admin-mini">
 <small>Signed in as</small>
@@ -462,7 +477,7 @@
       </section>
       <section id="messages-view" hidden>
         <header class="topbar"><div><h1>Messages</h1><p>Every client conversation in one inbox — see who's online and reply directly.</p></div></header>
-        <div class="inbox">
+        <div class="inbox" id="inbox">
           <div class="inbox-list" id="inbox-list"><div class="spinner"></div></div>
           <div class="inbox-thread" id="inbox-thread">
             <div class="inbox-empty">Select a conversation to view messages.</div>
@@ -841,7 +856,8 @@ ${x.section==="production"&&typeof x.stock==="number"?`<small style="display:blo
     function inboxSetReply(m){inboxReplyTarget={text:m.text,sender:m.senderRole==="admin"?"You":"Client"};const banner=$("#inbox-reply-banner");if(banner){banner.hidden=false;banner.querySelector("p").textContent=inboxReplyTarget.text}document.getElementById("inbox-reply-input")?.focus()}
     function inboxCancelReply(){inboxReplyTarget=null;const banner=$("#inbox-reply-banner");if(banner)banner.hidden=true}
     function attachInboxSwipe(el,m){const mine=m.senderRole==="admin";let startX=null,dx=0;const max=70,threshold=46;function move(clientX){if(startX===null)return;dx=clientX-startX;if(mine){if(dx>0)dx=0;if(dx<-max)dx=-max}else{if(dx<0)dx=0;if(dx>max)dx=max}el.style.transform=`translateX(${dx}px)`}function end(){if(startX===null)return;el.style.transition="transform .2s ease";if((mine&&dx<-threshold)||(!mine&&dx>threshold))inboxSetReply(m);el.style.transform="translateX(0)";startX=null;dx=0;setTimeout(()=>el.style.transition="",200)}el.addEventListener("touchstart",e=>{startX=e.touches[0].clientX;el.style.transition="none"},{passive:true});el.addEventListener("touchmove",e=>move(e.touches[0].clientX),{passive:true});el.addEventListener("touchend",end);el.addEventListener("mousedown",e=>{e.preventDefault();startX=e.clientX;el.style.transition="none";const mm=ev=>move(ev.clientX),mu=()=>{end();document.removeEventListener("mousemove",mm);document.removeEventListener("mouseup",mu)};document.addEventListener("mousemove",mm);document.addEventListener("mouseup",mu)})}
-    function openConversation(uid){activeConversationUid=uid;inboxCancelReply();renderInboxList();const convo=conversations.find(x=>x.id===uid);$("#inbox-thread").innerHTML=`<div class="inbox-thread-head"><div class="inbox-avatar" style="width:34px;height:34px;font-size:11px">${esc(initialsOf(convo?.userName))}<span class="dot ${isOnline(convo||{})?"online":""}"></span></div><div><b>${esc(convo?.userName||"Client")}</b><span>${isOnline(convo||{})?"Online now":"Offline"} · ${esc(convo?.userEmail||"")}</span></div></div><div class="inbox-messages" id="inbox-messages"><div class="spinner"></div></div><div class="inbox-reply-banner" id="inbox-reply-banner" hidden><div><small>Replying to</small><p></p></div><button type="button" id="inbox-cancel-reply">×</button></div><form class="inbox-composer" id="inbox-reply-form"><input name="text" id="inbox-reply-input" placeholder="Type a reply..." autocomplete="off" required><button type="submit">➤</button></form>`;document.getElementById("inbox-cancel-reply").onclick=inboxCancelReply;document.getElementById("inbox-reply-input").addEventListener("input",()=>{setAdminTyping(uid,true);clearTimeout(adminTypingTimeout);adminTypingTimeout=setTimeout(()=>setAdminTyping(uid,false),2000)});unsubConversationMessages?.();unsubConversationMessages=onSnapshot(query(collection(db,"directMessages"),where("userId","==",uid)),s=>renderConversationThread(s.docs.map(d=>d.data())),e=>{const m=$("#inbox-messages");if(m)m.innerHTML=`<div class="empty">${esc(e.message)}</div>`});updateDoc(doc(db,"conversationMeta",uid),{unreadByAdmin:false}).catch(()=>{});$("#inbox-reply-form").onsubmit=async e=>{e.preventDefault();const input=e.currentTarget.elements.text,text=input.value.trim();if(!text)return;const replyFields=inboxReplyTarget?{replyToText:inboxReplyTarget.text,replyToSender:inboxReplyTarget.sender}:{};try{setAdminTyping(uid,false);await addDoc(collection(db,"directMessages"),{userId:uid,senderRole:"admin",text,...replyFields,createdAt:serverTimestamp()});await updateDoc(doc(db,"conversationMeta",uid),{lastMessage:text,lastMessageAt:serverTimestamp(),lastSender:"admin",unreadByClient:true});input.value="";inboxCancelReply()}catch(err){toast("Send failed: "+err.message)}}}
+    function openConversation(uid){activeConversationUid=uid;inboxCancelReply();renderInboxList();$("#inbox").classList.add("thread-open");const convo=conversations.find(x=>x.id===uid);$("#inbox-thread").innerHTML=`<div class="inbox-thread-head"><button type="button" class="inbox-back" id="inbox-back">←</button><div class="inbox-avatar" style="width:34px;height:34px;font-size:11px">${esc(initialsOf(convo?.userName))}<span class="dot ${isOnline(convo||{})?"online":""}"></span></div><div><b>${esc(convo?.userName||"Client")}</b><span>${isOnline(convo||{})?"Online now":"Offline"} · ${esc(convo?.userEmail||"")}</span></div></div><div class="inbox-messages" id="inbox-messages"><div class="spinner"></div></div><div class="inbox-reply-banner" id="inbox-reply-banner" hidden><div><small>Replying to</small><p></p></div><button type="button" id="inbox-cancel-reply">×</button></div><form class="inbox-composer" id="inbox-reply-form"><input name="text" id="inbox-reply-input" placeholder="Type a reply..." autocomplete="off" required><button type="submit">➤</button></form>`;document.getElementById("inbox-back").onclick=closeConversation;document.getElementById("inbox-cancel-reply").onclick=inboxCancelReply;document.getElementById("inbox-reply-input").addEventListener("input",()=>{setAdminTyping(uid,true);clearTimeout(adminTypingTimeout);adminTypingTimeout=setTimeout(()=>setAdminTyping(uid,false),2000)});unsubConversationMessages?.();unsubConversationMessages=onSnapshot(query(collection(db,"directMessages"),where("userId","==",uid)),s=>renderConversationThread(s.docs.map(d=>d.data())),e=>{const m=$("#inbox-messages");if(m)m.innerHTML=`<div class="empty">${esc(e.message)}</div>`});updateDoc(doc(db,"conversationMeta",uid),{unreadByAdmin:false}).catch(()=>{});$("#inbox-reply-form").onsubmit=async e=>{e.preventDefault();const input=e.currentTarget.elements.text,text=input.value.trim();if(!text)return;const replyFields=inboxReplyTarget?{replyToText:inboxReplyTarget.text,replyToSender:inboxReplyTarget.sender}:{};try{setAdminTyping(uid,false);await addDoc(collection(db,"directMessages"),{userId:uid,senderRole:"admin",text,...replyFields,createdAt:serverTimestamp()});await updateDoc(doc(db,"conversationMeta",uid),{lastMessage:text,lastMessageAt:serverTimestamp(),lastSender:"admin",unreadByClient:true});input.value="";inboxCancelReply()}catch(err){toast("Send failed: "+err.message)}}}
+    function closeConversation(){activeConversationUid=null;$("#inbox").classList.remove("thread-open");unsubConversationMessages?.();renderInboxList();$("#inbox-thread").innerHTML='<div class="inbox-empty">Select a conversation to view messages.</div>'}
     function renderConversationThread(list){const box=$("#inbox-messages");if(!box)return;const sorted=list.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));box.innerHTML=sorted.length?sorted.map(m=>`<div class="inbox-bubble ${m.senderRole==="admin"?"mine":""}">${m.replyToText?`<div class="reply-quote">${esc(m.replyToSender||"")}: ${esc(m.replyToText)}</div>`:""}${esc(m.text)}<small>${m.createdAt?.toDate?m.createdAt.toDate().toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"Sending…"}</small></div>`).join(""):'<div class="empty">No messages yet.</div>';box.querySelectorAll(".inbox-bubble").forEach((el,i)=>attachInboxSwipe(el,sorted[i]));box.scrollTop=box.scrollHeight;updateInboxTyping()}
     const PP_STATUSES=[["unassigned","Not assigned"],["assigned","Assigned"],["submitted","Submitted"],["revision","Needs revision"],["completed","Completed"]];
     function ppStatus(x){const s=x.partnerStatus||"unassigned";if(s==="rejected")return"unassigned";return s==="pending_acceptance"?"assigned":s}
