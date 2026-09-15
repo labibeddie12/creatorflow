@@ -4,6 +4,9 @@
 <script type="module" crossorigin src="./assets/index-BeHfPur-.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-BXrbswJS.css">
   <style>
+    .cf-reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.2,.7,.3,1),transform .7s cubic-bezier(.2,.7,.3,1)}
+    .cf-reveal.cf-visible{opacity:1;transform:none}
+    @media(prefers-reduced-motion:reduce){.cf-reveal{opacity:1!important;transform:none!important;transition:none!important}}
     .cf-tieups{display:none;background:#211812;color:#fff;padding:22px 0;overflow:hidden}.cf-tieups.on{display:block}.cf-tieups-head{text-align:center;margin-bottom:10px;padding:0 20px}.cf-tieups-head span{color:#e68b65;font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase}.cf-tieups-head h2{font-size:clamp(32px,5vw,56px);letter-spacing:-.055em;margin:11px 0;font-weight:600}.cf-tieups-head p{color:#c9b9ad;margin:0}.cf-tieups-window{overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}.cf-tieups-track{display:flex;width:max-content;min-width:200%;justify-content:space-around;gap:24px;padding:8px 12px;animation:cfTieups 48s linear infinite}.cf-tieups-window:hover .cf-tieups-track{animation-play-state:paused}.cf-brand-card{width:140px;min-height:112px;flex:none;background:transparent;color:#fff;padding:4px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;text-decoration:none;border:0;transition:transform .3s ease}.cf-brand-card:hover{transform:translateY(-5px)}.cf-brand-card img{width:68px;height:68px;object-fit:cover;display:block;border-radius:50%;background:#fffaf4;border:2px solid #4b3b32;box-shadow:0 10px 22px #00000045;transition:border-color .3s,box-shadow .3s}.cf-brand-card:hover img{border-color:#d56f46;box-shadow:0 14px 28px #d56f4655}.cf-brand-card b{font-size:12px;margin-top:8px;font-weight:800;letter-spacing:-.01em}.cf-brand-card small{color:#c9b9ad;margin-top:3px;font-size:8px;text-transform:uppercase;letter-spacing:.08em}@keyframes cfTieups{to{transform:translateX(-50%)}}@media(max-width:640px){.cf-tieups{padding:16px 0}.cf-tieups-track{gap:10px}.cf-brand-card{width:100px;min-height:90px}.cf-brand-card img{width:46px;height:46px;border-width:2px}.cf-brand-card b{font-size:10px;margin-top:6px}}
     [data-partner-cta="true"]{background:#315a7d!important;color:#fff!important;border-color:#211812!important;box-shadow:5px 5px 0 #211812!important}
     [data-partner-cta="true"]:hover{background:#244762!important;transform:translate(-1px,-1px)}
@@ -154,4 +157,29 @@
     window.cfValidateCoupon=async function(codeRaw,amount){const code=String(codeRaw||"").trim().toUpperCase();if(!code)return{valid:false};try{const snap=await getDoc(doc(cpDb,"couponCodes",code));if(!snap.exists())return{valid:false,error:"Coupon not found"};const c=snap.data();if(c.active===false)return{valid:false,error:"This coupon is no longer active"};if(c.expiresAt&&new Date(c.expiresAt)<new Date(new Date().toDateString()))return{valid:false,error:"This coupon has expired"};if(c.usageLimit&&(c.usedCount||0)>=c.usageLimit)return{valid:false,error:"This coupon has reached its usage limit"};let discount=c.type==="percent"?amount*(c.value/100):c.value;discount=Math.max(0,Math.min(discount,amount));return{valid:true,code,type:c.type,value:c.value,discount,finalAmount:Math.max(0,amount-discount)}}catch(e){return{valid:false,error:"Couldn't check that coupon right now"}}};
     window.cfIncrementCouponUsage=async function(code){try{const ref=doc(cpDb,"couponCodes",code),snap=await getDoc(ref);if(snap.exists())await updateDoc(ref,{usedCount:(snap.data().usedCount||0)+1})}catch(e){console.error("Coupon usage increment failed",e)}};
   </script>
-  <style>.cf-legal-footer{background:#211812;color:#b9aaa0;border-top:1px solid #51453e;padding:19px 20px;text-align:center;font:700 10px/1.6 Arial,Helvetica,sans-serif;letter-spacing:.03em}.cf-legal-footer a{color:#fff;text-decoration:none;border-bottom:1px solid #df744f;padding-bottom:2px}.cf-legal-footer a:hover{color:#e68b65}@media(max-width:640px){.cf-legal-footer{padding:17px 14px;font-size:9px}}</style><footer class="cf-legal-footer" aria-label="Legal information">By using CreatorFlow, you agree to our <a href="./terms.html">Terms &amp; Conditions</a>.</footer></body></html>
+  <style>.cf-legal-footer{background:#211812;color:#b9aaa0;border-top:1px solid #51453e;padding:19px 20px;text-align:center;font:700 10px/1.6 Arial,Helvetica,sans-serif;letter-spacing:.03em}.cf-legal-footer a{color:#fff;text-decoration:none;border-bottom:1px solid #df744f;padding-bottom:2px}.cf-legal-footer a:hover{color:#e68b65}@media(max-width:640px){.cf-legal-footer{padding:17px 14px;font-size:9px}}</style><footer class="cf-legal-footer" aria-label="Legal information">By using CreatorFlow, you agree to our <a href="./terms.html">Terms &amp; Conditions</a>.</footer>
+<script>
+(function(){
+  var targets = '.service-card, .cf-rental-card, .section-head, .cf-rentals-head, .cf-tieups-head, .cf-members-head';
+  var seen = new WeakSet();
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        entry.target.classList.add('cf-visible');
+        io.unobserve(entry.target);
+      }
+    });
+  }, {threshold:0.12, rootMargin:'0px 0px -40px 0px'});
+  function scan(){
+    document.querySelectorAll(targets).forEach(function(el){
+      if(seen.has(el)) return;
+      seen.add(el);
+      el.classList.add('cf-reveal');
+      io.observe(el);
+    });
+  }
+  scan();
+  new MutationObserver(scan).observe(document.body, {childList:true, subtree:true});
+})();
+</script>
+</body></html>
