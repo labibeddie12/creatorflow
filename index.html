@@ -335,7 +335,7 @@ const FAQ=[
   {q:"How do I rent camera equipment?",a:"Head to our Rental Catalog section, pick an item, choose your dates and delivery address, and submit the request — we deliver and pick up the gear for you."},
   {q:"How long does delivery take?",a:"Turnaround varies by service — most edits are ready in 3-5 days, shorts packs in 24-48 hours. Exact timing is confirmed once your project starts."}
 ];
-let chatId=null,visitorUid=null,unsubMsgs=null,renderedIds=new Set();
+let chatId=null,visitorUid=null,unsubMsgs=null,unsubChatDoc=null,renderedIds=new Set();
 
 function chBody(){return document.getElementById("cf-chat-body")}
 function chScroll(){const b=chBody();b.scrollTop=b.scrollHeight}
@@ -376,6 +376,10 @@ async function startLiveChat(name,email){
     chatId=openChatDoc.id;
     await updateDoc(doc(chDb,"liveSupportChats",chatId),{visitorName:name,visitorEmail:email,updatedAt:serverTimestamp()});
   }else{
+    // Genuinely new chat (previous one, if any, is closed) - clear the visual
+    // window and tracking state so old messages never mix with the new chat.
+    chBody().innerHTML="";
+    renderedIds=new Set();
     const ref=await addDoc(collection(chDb,"liveSupportChats"),{visitorUid,visitorName:name,visitorEmail:email,status:"pending_human",assignedTo:"",createdAt:serverTimestamp(),lastMessageAt:serverTimestamp()});
     chatId=ref.id;
   }
@@ -402,6 +406,17 @@ async function startLiveChat(name,email){
       }
     });
   },err=>{console.error("Chat message subscription failed:",err.message)});
+  unsubChatDoc?.();
+  let chatDocFirstLoad=true;
+  unsubChatDoc=onSnapshot(doc(chDb,"liveSupportChats",chatId),d=>{
+    if(chatDocFirstLoad){chatDocFirstLoad=false;return}
+    if(d.data()?.status==="closed"&&chatId){
+      chAppendRow("bot","Our team has closed this conversation. Feel free to start a new one anytime!","Assistant");
+      document.getElementById("cf-chat-input-area").innerHTML="";
+      unsubMsgs?.();unsubChatDoc?.();
+      chatId=null;
+    }
+  },()=>{});
   showMessageForm();
 }
 onAuthStateChanged(chAuth,u=>{if(u){visitorUid=u.uid}else{signInAnonymously(chAuth).catch(()=>{})}});
@@ -448,8 +463,8 @@ document.getElementById("cf-chat-input-area").addEventListener("click",async e=>
     if(!chatId)return;
     e.target.disabled=true;
     try{
+      unsubMsgs?.();unsubChatDoc?.();
       await updateDoc(doc(chDb,"liveSupportChats",chatId),{status:"closed",updatedAt:serverTimestamp()});
-      unsubMsgs?.();
       chAppendRow("bot","This conversation has been closed. Feel free to start a new one anytime!","Assistant");
       document.getElementById("cf-chat-input-area").innerHTML="";
       chatId=null;
