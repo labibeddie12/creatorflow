@@ -371,18 +371,27 @@ function showMessageForm(){
 }
 async function startLiveChat(name,email){
   const existingSnap=await getDocs(query(collection(chDb,"liveSupportChats"),where("visitorUid","==",visitorUid)));
-  const openChatDoc=existingSnap.docs.find(d=>d.data().status!=="closed");
-  if(openChatDoc){
-    chatId=openChatDoc.id;
-    await updateDoc(doc(chDb,"liveSupportChats",chatId),{visitorName:name,visitorEmail:email,updatedAt:serverTimestamp()});
+  // If more than one exists (e.g. from before this fix), use the most recently active one.
+  const existingDocs=existingSnap.docs.slice().sort((a,b)=>(b.data().lastMessageAt?.seconds||b.data().createdAt?.seconds||0)-(a.data().lastMessageAt?.seconds||a.data().createdAt?.seconds||0));
+  const existingDoc=existingDocs[0];
+  const wasClosed=existingDoc&&existingDoc.data().status==="closed";
+
+  if(existingDoc){
+    chatId=existingDoc.id;
+    await updateDoc(doc(chDb,"liveSupportChats",chatId),{visitorName:name,visitorEmail:email,status:"pending_human",updatedAt:serverTimestamp()});
   }else{
-    // Genuinely new chat (previous one, if any, is closed) - clear the visual
-    // window and tracking state so old messages never mix with the new chat.
-    chBody().innerHTML="";
-    renderedIds=new Set();
     const ref=await addDoc(collection(chDb,"liveSupportChats"),{visitorUid,visitorName:name,visitorEmail:email,status:"pending_human",assignedTo:"",createdAt:serverTimestamp(),lastMessageAt:serverTimestamp()});
     chatId=ref.id;
   }
+
+  if(!existingDoc||wasClosed){
+    // Fresh visual start for the visitor: either a brand-new chat, or reopening
+    // one they'd previously closed. Admin still keeps the full thread either way,
+    // since we reuse the same document rather than creating a new one.
+    chBody().innerHTML="";
+    renderedIds=new Set();
+  }
+
   unsubMsgs?.();
   let firstLoad=true;
   unsubMsgs=onSnapshot(query(collection(chDb,"liveSupportMessages"),where("chatId","==",chatId)),s=>{
@@ -392,6 +401,7 @@ async function startLiveChat(name,email){
       sorted.forEach(d=>{
         if(renderedIds.has(d.id))return;
         renderedIds.add(d.id);
+        if(wasClosed)return; // pre-closure history stays out of the visitor's view, but stays marked seen
         const m=d.data();
         chAppendRow(m.sender==="staff"?"staff":"visitor",m.text,m.sender==="staff"?"CreatorFlow Team":"You");
       });
