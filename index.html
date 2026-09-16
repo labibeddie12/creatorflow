@@ -378,7 +378,7 @@ async function startLiveChat(name,email){
 
   if(existingDoc){
     chatId=existingDoc.id;
-    await updateDoc(doc(chDb,"liveSupportChats",chatId),{visitorName:name,visitorEmail:email,status:"pending_human",updatedAt:serverTimestamp()});
+    await updateDoc(doc(chDb,"liveSupportChats",chatId),{visitorName:name,visitorEmail:email,status:"active",updatedAt:serverTimestamp()});
   }else{
     const ref=await addDoc(collection(chDb,"liveSupportChats"),{visitorUid,visitorName:name,visitorEmail:email,status:"pending_human",assignedTo:"",createdAt:serverTimestamp(),lastMessageAt:serverTimestamp()});
     chatId=ref.id;
