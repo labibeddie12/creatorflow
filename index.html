@@ -7,6 +7,11 @@
     .cf-reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.2,.7,.3,1),transform .7s cubic-bezier(.2,.7,.3,1)}
     .cf-reveal.cf-visible{opacity:1;transform:none}
     @media(prefers-reduced-motion:reduce){.cf-reveal{opacity:1!important;transform:none!important;transition:none!important}}
+    .cf-service-pager{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:36px;padding:0 24px}
+    .cf-pager-btn{background:var(--ink);color:var(--paper);border:0;padding:11px 20px;font-size:13px;font-weight:700;border-radius:4px;cursor:pointer;transition:opacity .15s,transform .15s}
+    .cf-pager-btn:hover:not(:disabled){transform:translateY(-1px)}
+    .cf-pager-btn:disabled{opacity:.35;cursor:not-allowed}
+    .cf-pager-info{font-size:13px;color:var(--muted);font-weight:600;min-width:110px;text-align:center}
     .cf-tieups{display:none;background:#211812;color:#fff;padding:22px 0;overflow:hidden}.cf-tieups.on{display:block}.cf-tieups-head{text-align:center;margin-bottom:10px;padding:0 20px}.cf-tieups-head span{color:#e68b65;font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase}.cf-tieups-head h2{font-size:clamp(32px,5vw,56px);letter-spacing:-.055em;margin:11px 0;font-weight:600}.cf-tieups-head p{color:#c9b9ad;margin:0}.cf-tieups-window{overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}.cf-tieups-track{display:flex;width:max-content;min-width:200%;justify-content:space-around;gap:24px;padding:8px 12px;animation:cfTieups 48s linear infinite}.cf-tieups-window:hover .cf-tieups-track{animation-play-state:paused}.cf-brand-card{width:140px;min-height:112px;flex:none;background:transparent;color:#fff;padding:4px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;text-decoration:none;border:0;transition:transform .3s ease}.cf-brand-card:hover{transform:translateY(-5px)}.cf-brand-card img{width:68px;height:68px;object-fit:cover;display:block;border-radius:50%;background:#fffaf4;border:2px solid #4b3b32;box-shadow:0 10px 22px #00000045;transition:border-color .3s,box-shadow .3s}.cf-brand-card:hover img{border-color:#d56f46;box-shadow:0 14px 28px #d56f4655}.cf-brand-card b{font-size:12px;margin-top:8px;font-weight:800;letter-spacing:-.01em}.cf-brand-card small{color:#c9b9ad;margin-top:3px;font-size:8px;text-transform:uppercase;letter-spacing:.08em}@keyframes cfTieups{to{transform:translateX(-50%)}}@media(max-width:640px){.cf-tieups{padding:16px 0}.cf-tieups-track{gap:10px}.cf-brand-card{width:100px;min-height:90px}.cf-brand-card img{width:46px;height:46px;border-width:2px}.cf-brand-card b{font-size:10px;margin-top:6px}}
     [data-partner-cta="true"]{background:#315a7d!important;color:#fff!important;border-color:#211812!important;box-shadow:5px 5px 0 #211812!important}
     [data-partner-cta="true"]:hover{background:#244762!important;transform:translate(-1px,-1px)}
@@ -19,6 +24,14 @@
     const cfConfig={apiKey:"AIzaSyAX7aQr5bQNTeRMF3EiXhHzVdAUdouqfD8",authDomain:"creatorflow-2e633.firebaseapp.com",projectId:"creatorflow-2e633",storageBucket:"creatorflow-2e633.firebasestorage.app",messagingSenderId:"957859362731",appId:"1:957859362731:web:cc6e688950c279cf9104ee"},cfDb=getFirestore(getApps()[0]||initializeApp(cfConfig)),cfEsc=v=>String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c])),cfDrive=url=>{try{const u=new URL(url),m=u.pathname.match(/\/file\/d\/([^/]+)/),id=m?.[1]||u.searchParams.get("id");return id?`https://drive.google.com/thumbnail?id=${id}&sz=w1200`:url}catch{return url}};let cfBrands=[],cfBrandHash="";
     function cfPlace(){let section=document.getElementById("cf-tieups");if(!section){section=document.createElement("section");section.id="cf-tieups";section.className="cf-tieups";section.innerHTML='<div class="cf-tieups-head"><span>Collaborations</span><h2>Tie-ups.</h2><p>Brands and businesses growing with CreatorFlow.</p></div><div class="cf-tieups-window"><div class="cf-tieups-track" id="cf-tieups-track"></div></div>';document.body.appendChild(section)}const root=document.getElementById("root"),footer=root?.querySelector("footer");if(footer&&section.nextElementSibling!==footer)footer.parentElement.insertBefore(section,footer);section.classList.toggle("on",cfBrands.length>0);const hash=JSON.stringify(cfBrands);if(hash!==cfBrandHash){cfBrandHash=hash;const cards=cfBrands.map(x=>{const body=`<img src="${cfEsc(cfDrive(x.imageUrl))}" alt="${cfEsc(x.name)}" loading="lazy" referrerpolicy="no-referrer"><b>${cfEsc(x.name)}</b><small>${cfEsc(x.relationship||"Brand promotion partner")}</small>`;return x.website?`<a class="cf-brand-card" href="${cfEsc(x.website)}" target="_blank" rel="noopener">${body}</a>`:`<article class="cf-brand-card">${body}</article>`}).join("");const track=document.getElementById("cf-tieups-track");if(track)track.innerHTML=cards+cards}const links=root?.querySelector(".nav-links");if(links&&!links.querySelector('[href="./about.html"]'))links.insertAdjacentHTML("beforeend",'<a href="./about.html">About</a>')}
     document.addEventListener("DOMContentLoaded",()=>{cfPlace();new MutationObserver(cfPlace).observe(document.getElementById("root"),{childList:true,subtree:true})});onSnapshot(query(collection(cfDb,"brandTieups"),where("active","==",true)),snap=>{cfBrands=snap.docs.map(d=>d.data()).sort((a,b)=>(a.order??100)-(b.order??100));cfPlace()});
+  </script>
+  <script type="module">
+import{initializeApp,getApps}from"https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import{getFirestore,collection,query,where,onSnapshot}from"https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+const rvConfig={apiKey:"AIzaSyAX7aQr5bQNTeRMF3EiXhHzVdAUdouqfD8",authDomain:"creatorflow-2e633.firebaseapp.com",projectId:"creatorflow-2e633",storageBucket:"creatorflow-2e633.firebasestorage.app",messagingSenderId:"957859362731",appId:"1:957859362731:web:cc6e688950c279cf9104ee"},rvDb=getFirestore(getApps()[0]||initializeApp(rvConfig));
+const rvEsc=v=>String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
+function rvPlace(){let section=document.getElementById("cf-reviews");if(!section){section=document.createElement("section");section.id="cf-reviews";section.className="cf-reviews";section.innerHTML='<div class="cf-reviews-head"><span>Client stories</span><h2>What clients say.</h2></div><div class="cf-reviews-grid" id="cf-reviews-grid"></div>';document.body.appendChild(section)}const tieups=document.getElementById("cf-tieups"),parent=tieups?.parentElement;if(tieups&&section.nextElementSibling!==tieups)parent.insertBefore(section,tieups)}
+onSnapshot(query(collection(rvDb,"reviews"),where("status","==","approved")),s=>{rvPlace();const section=document.getElementById("cf-reviews"),grid=document.getElementById("cf-reviews-grid");const reviews=s.docs.map(d=>d.data()).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)).slice(0,12);section.classList.toggle("on",reviews.length>0);grid.innerHTML=reviews.map(r=>`<div class="cf-review-card"><p class="cf-review-stars">${"★".repeat(r.rating||0)}${"☆".repeat(5-(r.rating||0))}</p><p class="cf-review-comment">${rvEsc(r.comment||"")}</p><p class="cf-review-meta"><b>${rvEsc(r.clientName||"CreatorFlow client")}</b>${r.service?" · "+rvEsc(r.service):""}</p></div>`).join("")},()=>{});
   </script>
   <script>
     document.addEventListener("DOMContentLoaded",()=>{const root=document.getElementById("root");let ready=false;function enhanceNav(){const nav=root.querySelector("nav");if(!nav)return;const links=nav.querySelector(".nav-links");if(links&&!links.querySelector('[href="./portal.html"]'))links.insertAdjacentHTML("beforeend",'<a href="./portal.html">Client Portal</a>');if(ready)return;ready=true;nav.insertAdjacentHTML("beforeend",'<button class="cf-mobile-menu-button" id="cf-mobile-menu-button" aria-label="Open menu" aria-expanded="false">☰</button>');document.body.insertAdjacentHTML("beforeend",'<div class="cf-mobile-overlay" id="cf-mobile-overlay"></div><aside class="cf-mobile-drawer" id="cf-mobile-drawer" aria-label="Mobile navigation"><small>Explore CreatorFlow</small><a href="./index.html#services">Services</a><a href="./work.html">Work</a><a href="./index.html#packages">Packages</a><a href="./index.html#production">Production</a><a href="./partner.html">Become a Partner</a><a href="./about.html">About</a><a class="portal" href="./portal.html">Client Portal</a><p>Editing, production and creator growth—all in one flow.</p></aside>');const button=document.getElementById("cf-mobile-menu-button"),drawer=document.getElementById("cf-mobile-drawer"),overlay=document.getElementById("cf-mobile-overlay");function toggle(open){button.classList.toggle("open",open);drawer.classList.toggle("open",open);overlay.classList.toggle("open",open);button.textContent=open?"×":"☰";button.setAttribute("aria-expanded",String(open));document.body.style.overflow=open?"hidden":""}button.onclick=()=>toggle(!drawer.classList.contains("open"));overlay.onclick=()=>toggle(false);drawer.querySelectorAll("a").forEach(a=>a.onclick=()=>toggle(false));document.addEventListener("keydown",e=>{if(e.key==="Escape")toggle(false)})}enhanceNav();new MutationObserver(enhanceNav).observe(root,{childList:true,subtree:true})});
@@ -180,6 +193,44 @@
   }
   scan();
   new MutationObserver(scan).observe(document.body, {childList:true, subtree:true});
+})();
+</script>
+<script>
+(function(){
+  var PAGE_SIZE = 10, currentPage = 1, pagerEl = null;
+
+  function paginate(){
+    var grid = document.querySelector('.service-grid');
+    if(!grid) return;
+    var cards = Array.prototype.filter.call(grid.querySelectorAll('.service-card'), function(c){ return true; });
+    if(cards.length === 0) return;
+    var totalPages = Math.ceil(cards.length / PAGE_SIZE);
+    if(currentPage > totalPages) currentPage = totalPages;
+    if(currentPage < 1) currentPage = 1;
+    if(cards.length <= PAGE_SIZE){
+      cards.forEach(function(c){ c.style.display = ''; });
+      if(pagerEl){ pagerEl.remove(); pagerEl = null; }
+      return;
+    }
+    cards.forEach(function(c, i){
+      c.style.display = (Math.floor(i / PAGE_SIZE) + 1 === currentPage) ? '' : 'none';
+    });
+    if(!pagerEl){
+      pagerEl = document.createElement('div');
+      pagerEl.className = 'cf-service-pager';
+      grid.insertAdjacentElement('afterend', pagerEl);
+    }
+    pagerEl.innerHTML = '<button class="cf-pager-btn" data-dir="prev"'+(currentPage===1?' disabled':'')+'>← Previous</button><span class="cf-pager-info">Page '+currentPage+' of '+totalPages+'</span><button class="cf-pager-btn" data-dir="next"'+(currentPage===totalPages?' disabled':'')+'>Next →</button>';
+    pagerEl.querySelector('[data-dir="prev"]').onclick = function(){ currentPage--; paginate(); grid.scrollIntoView({behavior:'smooth',block:'start'}); };
+    pagerEl.querySelector('[data-dir="next"]').onclick = function(){ currentPage++; paginate(); grid.scrollIntoView({behavior:'smooth',block:'start'}); };
+  }
+
+  document.body.addEventListener('click', function(e){
+    if(e.target.closest && e.target.closest('.filters button')) currentPage = 1;
+  });
+
+  new MutationObserver(paginate).observe(document.body, {childList:true, subtree:true});
+  paginate();
 })();
 </script>
 </body></html>
