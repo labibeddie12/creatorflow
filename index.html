@@ -197,39 +197,45 @@ onSnapshot(query(collection(rvDb,"reviews"),where("status","==","approved")),s=>
 </script>
 <script>
 (function(){
-  var PAGE_SIZE = 10, currentPage = 1, pagerEl = null;
+  var PAGE_SIZE = 10, currentPage = 1, pagerEl = null, observer = null;
 
   function paginate(){
     var grid = document.querySelector('.service-grid');
     if(!grid) return;
-    var cards = Array.prototype.filter.call(grid.querySelectorAll('.service-card'), function(c){ return true; });
+    var cards = Array.prototype.slice.call(grid.querySelectorAll('.service-card'));
     if(cards.length === 0) return;
     var totalPages = Math.ceil(cards.length / PAGE_SIZE);
     if(currentPage > totalPages) currentPage = totalPages;
     if(currentPage < 1) currentPage = 1;
+
+    if(observer) observer.disconnect();
+
     if(cards.length <= PAGE_SIZE){
       cards.forEach(function(c){ c.style.display = ''; });
       if(pagerEl){ pagerEl.remove(); pagerEl = null; }
-      return;
+    } else {
+      cards.forEach(function(c, i){
+        c.style.display = (Math.floor(i / PAGE_SIZE) + 1 === currentPage) ? '' : 'none';
+      });
+      if(!pagerEl){
+        pagerEl = document.createElement('div');
+        pagerEl.className = 'cf-service-pager';
+        grid.insertAdjacentElement('afterend', pagerEl);
+      }
+      pagerEl.innerHTML = '<button class="cf-pager-btn" data-dir="prev"'+(currentPage===1?' disabled':'')+'>← Previous</button><span class="cf-pager-info">Page '+currentPage+' of '+totalPages+'</span><button class="cf-pager-btn" data-dir="next"'+(currentPage===totalPages?' disabled':'')+'>Next →</button>';
+      pagerEl.querySelector('[data-dir="prev"]').onclick = function(){ currentPage--; paginate(); grid.scrollIntoView({behavior:'smooth',block:'start'}); };
+      pagerEl.querySelector('[data-dir="next"]').onclick = function(){ currentPage++; paginate(); grid.scrollIntoView({behavior:'smooth',block:'start'}); };
     }
-    cards.forEach(function(c, i){
-      c.style.display = (Math.floor(i / PAGE_SIZE) + 1 === currentPage) ? '' : 'none';
-    });
-    if(!pagerEl){
-      pagerEl = document.createElement('div');
-      pagerEl.className = 'cf-service-pager';
-      grid.insertAdjacentElement('afterend', pagerEl);
-    }
-    pagerEl.innerHTML = '<button class="cf-pager-btn" data-dir="prev"'+(currentPage===1?' disabled':'')+'>← Previous</button><span class="cf-pager-info">Page '+currentPage+' of '+totalPages+'</span><button class="cf-pager-btn" data-dir="next"'+(currentPage===totalPages?' disabled':'')+'>Next →</button>';
-    pagerEl.querySelector('[data-dir="prev"]').onclick = function(){ currentPage--; paginate(); grid.scrollIntoView({behavior:'smooth',block:'start'}); };
-    pagerEl.querySelector('[data-dir="next"]').onclick = function(){ currentPage++; paginate(); grid.scrollIntoView({behavior:'smooth',block:'start'}); };
+
+    if(observer) observer.observe(document.body, {childList:true, subtree:true});
   }
 
   document.body.addEventListener('click', function(e){
     if(e.target.closest && e.target.closest('.filters button')) currentPage = 1;
   });
 
-  new MutationObserver(paginate).observe(document.body, {childList:true, subtree:true});
+  observer = new MutationObserver(paginate);
+  observer.observe(document.body, {childList:true, subtree:true});
   paginate();
 })();
 </script>
