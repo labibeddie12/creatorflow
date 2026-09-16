@@ -246,4 +246,56 @@ onSnapshot(query(collection(rvDb,"reviews"),where("status","==","approved")),s=>
   paginate();
 })();
 </script>
+<style>
+.cf-chat-launcher{position:fixed;bottom:22px;right:22px;z-index:9998;width:58px;height:58px;border-radius:50%;background:var(--coral,#e8432f);color:#fff;border:0;font-size:24px;cursor:pointer;box-shadow:0 10px 26px #00000040;display:flex;align-items:center;justify-content:center;transition:transform .2s}
+.cf-chat-launcher:hover{transform:scale(1.06)}
+.cf-chat-panel{position:fixed;bottom:90px;right:22px;z-index:9998;width:340px;max-width:92vw;height:460px;max-height:75vh;background:#fff;border-radius:12px;box-shadow:0 20px 50px #00000045;display:flex;flex-direction:column;overflow:hidden;font-family:inherit}
+.cf-chat-panel[hidden]{display:none}
+.cf-chat-head{background:#171717;color:#fff;padding:14px 16px;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+.cf-chat-head button{background:none;border:0;color:#fff;font-size:18px;cursor:pointer}
+.cf-chat-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#faf8f4}
+.cf-chat-msg{max-width:80%;padding:9px 12px;border-radius:10px;font-size:13px;line-height:1.45}
+.cf-chat-msg.bot,.cf-chat-msg.staff{background:#eee;align-self:flex-start}
+.cf-chat-msg.visitor{background:var(--coral,#e8432f);color:#fff;align-self:flex-end}
+.cf-chat-quick{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.cf-chat-quick button{background:#fff;border:1px solid #ddd;padding:8px 10px;font-size:12.5px;text-align:left;border-radius:6px;cursor:pointer}
+.cf-chat-quick button:hover{border-color:var(--coral,#e8432f)}
+.cf-chat-form{display:flex;border-top:1px solid #eee}
+.cf-chat-form input{flex:1;border:0;padding:12px;font:inherit;font-size:13px}
+.cf-chat-form button{background:var(--coral,#e8432f);color:#fff;border:0;padding:0 16px;cursor:pointer;font-weight:700}
+.cf-chat-intro{padding:14px;display:flex;flex-direction:column;gap:8px}
+.cf-chat-intro input{border:1px solid #ddd;padding:10px;border-radius:6px;font:inherit;font-size:13px}
+.cf-chat-intro button{background:var(--coral,#e8432f);color:#fff;border:0;padding:10px;border-radius:6px;font-weight:700;cursor:pointer}
+</style>
+<button class="cf-chat-launcher" id="cf-chat-launcher" aria-label="Open support chat">💬</button>
+<div class="cf-chat-panel" id="cf-chat-panel" hidden>
+  <div class="cf-chat-head"><span>CreatorFlow Support</span><button id="cf-chat-close" aria-label="Close chat">✕</button></div>
+  <div class="cf-chat-body" id="cf-chat-body"></div>
+  <div id="cf-chat-input-area"></div>
+</div>
+<script type="module">
+import{initializeApp,getApps}from"https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import{getAuth,signInAnonymously,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import{getFirestore,collection,addDoc,doc,updateDoc,onSnapshot,query,where,orderBy,serverTimestamp}from"https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+const chConfig={apiKey:"AIzaSyAX7aQr5bQNTeRMF3EiXhHzVdAUdouqfD8",authDomain:"creatorflow-2e633.firebaseapp.com",projectId:"creatorflow-2e633",storageBucket:"creatorflow-2e633.firebasestorage.app",messagingSenderId:"957859362731",appId:"1:957859362731:web:cc6e688950c279cf9104ee"},chApp=getApps()[0]||initializeApp(chConfig),chAuth=getAuth(chApp),chDb=getFirestore(chApp);
+const chEsc=v=>String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
+const FAQ=[
+  {q:"What services do you offer?",a:"We offer video editing (long-form + shorts/reels), camera & gear rental, and crew bookings for shoots. Check the Services section above for full details and pricing."},
+  {q:"How much does editing cost?",a:"Pricing depends on the service — long-form edits and shorts packs are listed with fixed prices in our Services section. For custom work, our team can quote you directly."},
+  {q:"How do I rent camera equipment?",a:"Head to our Rental Catalog section, pick an item, choose your dates and delivery address, and submit the request — we deliver and pick up the gear for you."},
+  {q:"How long does delivery take?",a:"Turnaround varies by service — most edits are ready in 3-5 days, shorts packs in 24-48 hours. Exact timing is confirmed once your project starts."}
+];
+let chatId=null,visitorUid=null,unsubMsgs=null,stage="faq";
+function chMsg(sender,text){const body=document.getElementById("cf-chat-body");const el=document.createElement("div");el.className="cf-chat-msg "+sender;el.textContent=text;body.appendChild(el);body.scrollTop=body.scrollHeight}
+function showFAQ(){const body=document.getElementById("cf-chat-body");const wrap=document.createElement("div");wrap.className="cf-chat-quick";wrap.innerHTML=FAQ.map((f,i)=>`<button data-faq="${i}">${chEsc(f.q)}</button>`).join("")+'<button data-talk-human>💬 Talk to our team</button>';body.appendChild(wrap);body.scrollTop=body.scrollHeight}
+function showIntroForm(){stage="intro";document.getElementById("cf-chat-input-area").innerHTML=`<div class="cf-chat-intro"><input id="cf-chat-name" placeholder="Your name"><input id="cf-chat-email" placeholder="Your email" type="email"><button id="cf-chat-start">Start chat</button></div>`}
+function showMessageForm(){stage="chat";document.getElementById("cf-chat-input-area").innerHTML=`<form class="cf-chat-form" id="cf-chat-send-form"><input id="cf-chat-text" placeholder="Type a message..." autocomplete="off" required><button type="submit">Send</button></form>`}
+async function startLiveChat(name,email){const ref=await addDoc(collection(chDb,"liveSupportChats"),{visitorUid,visitorName:name,visitorEmail:email,status:"pending_human",assignedTo:"",createdAt:serverTimestamp(),lastMessageAt:serverTimestamp()});chatId=ref.id;unsubMsgs?.();unsubMsgs=onSnapshot(query(collection(chDb,"liveSupportMessages"),where("chatId","==",chatId),orderBy("createdAt","asc")),s=>{document.getElementById("cf-chat-body").querySelectorAll(".cf-chat-msg.staff").forEach(x=>x.remove());s.docs.forEach(d=>{const m=d.data();if(m.sender==="staff")chMsg("staff",m.text)})});showMessageForm()}
+onAuthStateChanged(chAuth,u=>{if(u){visitorUid=u.uid}else{signInAnonymously(chAuth).catch(()=>{})}});
+document.getElementById("cf-chat-launcher").onclick=()=>{document.getElementById("cf-chat-panel").hidden=false;if(!document.getElementById("cf-chat-body").children.length){chMsg("bot","Hi! I'm the CreatorFlow assistant. Pick a question below, or chat with our team.");showFAQ()}};
+document.getElementById("cf-chat-close").onclick=()=>{document.getElementById("cf-chat-panel").hidden=true};
+document.getElementById("cf-chat-body").addEventListener("click",e=>{const fi=e.target.dataset.faq;if(fi!==undefined){const item=FAQ[Number(fi)];chMsg("visitor",item.q);setTimeout(()=>chMsg("bot",item.a),300);return}if(e.target.hasAttribute("data-talk-human")){chMsg("visitor","I'd like to talk to your team");setTimeout(()=>{chMsg("bot","Sure! Just share your name and email so our team can follow up.");showIntroForm()},300)}});
+document.getElementById("cf-chat-input-area").addEventListener("click",async e=>{if(e.target.id==="cf-chat-start"){const name=document.getElementById("cf-chat-name").value.trim(),email=document.getElementById("cf-chat-email").value.trim();if(!name||!email)return;await startLiveChat(name,email);chMsg("bot","Thanks "+name+"! Type your message below and our team will reply here as soon as possible.")}});
+document.getElementById("cf-chat-input-area").addEventListener("submit",async e=>{e.preventDefault();if(e.target.id!=="cf-chat-send-form")return;const input=document.getElementById("cf-chat-text"),text=input.value.trim();if(!text||!chatId)return;input.value="";chMsg("visitor",text);await addDoc(collection(chDb,"liveSupportMessages"),{chatId,sender:"visitor",text,createdAt:serverTimestamp()});await updateDoc(doc(chDb,"liveSupportChats",chatId),{lastMessageAt:serverTimestamp(),status:"pending_human"})});
+</script>
 </body></html>
