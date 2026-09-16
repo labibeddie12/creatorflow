@@ -297,6 +297,9 @@ onSnapshot(query(collection(rvDb,"reviews"),where("status","==","approved")),s=>
 .cf-chat-typing i:nth-child(2){animation-delay:.15s}
 .cf-chat-typing i:nth-child(3){animation-delay:.3s}
 @keyframes cfTypingDot{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+.cf-chat-end-row{padding:6px 12px;background:#fff;border-top:1px solid #eee;flex-shrink:0;text-align:right}
+.cf-chat-end-row button{background:none;border:0;color:#a39c8f;font-size:11px;cursor:pointer;text-decoration:underline;padding:4px}
+.cf-chat-end-row button:hover{color:#e8432f}
 .cf-chat-form{display:flex;border-top:1px solid #eee;background:#fff;flex-shrink:0}
 .cf-chat-form input{flex:1;border:0;padding:14px;font:inherit;font-size:13px;outline:none}
 .cf-chat-form button{background:#e8432f;color:#fff;border:0;padding:0 18px;cursor:pointer;font-weight:700;font-size:13px}
@@ -322,7 +325,7 @@ onSnapshot(query(collection(rvDb,"reviews"),where("status","==","approved")),s=>
 <script type="module">
 import{initializeApp,getApps}from"https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import{getAuth,signInAnonymously,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import{getFirestore,collection,addDoc,doc,updateDoc,onSnapshot,query,where,orderBy,serverTimestamp}from"https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import{getFirestore,collection,addDoc,doc,updateDoc,onSnapshot,query,where,orderBy,serverTimestamp,getDocs}from"https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 const chConfig={apiKey:"AIzaSyAX7aQr5bQNTeRMF3EiXhHzVdAUdouqfD8",authDomain:"creatorflow-2e633.firebaseapp.com",projectId:"creatorflow-2e633",storageBucket:"creatorflow-2e633.firebasestorage.app",messagingSenderId:"957859362731",appId:"1:957859362731:web:cc6e688950c279cf9104ee"},chApp=getApps()[0]||initializeApp(chConfig),chAuth=getAuth(chApp),chDb=getFirestore(chApp);
 const chEsc=v=>String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const chTime=()=>{const d=new Date();let h=d.getHours(),m=String(d.getMinutes()).padStart(2,"0"),ap=h>=12?"PM":"AM";h=h%12||12;return h+":"+m+" "+ap};
@@ -364,11 +367,18 @@ function showIntroForm(){
   document.getElementById("cf-chat-input-area").innerHTML=`<div class="cf-chat-intro"><input id="cf-chat-name" placeholder="Your name"><input id="cf-chat-email" placeholder="Your email" type="email"><button id="cf-chat-start">Start chat</button></div>`;
 }
 function showMessageForm(){
-  document.getElementById("cf-chat-input-area").innerHTML=`<form class="cf-chat-form" id="cf-chat-send-form"><input id="cf-chat-text" placeholder="Type a message..." autocomplete="off" required><button type="submit" id="cf-chat-send-btn">Send</button></form>`;
+  document.getElementById("cf-chat-input-area").innerHTML=`<div class="cf-chat-end-row"><button type="button" id="cf-chat-end-btn">End conversation</button></div><form class="cf-chat-form" id="cf-chat-send-form"><input id="cf-chat-text" placeholder="Type a message..." autocomplete="off" required><button type="submit" id="cf-chat-send-btn">Send</button></form>`;
 }
 async function startLiveChat(name,email){
-  const ref=await addDoc(collection(chDb,"liveSupportChats"),{visitorUid,visitorName:name,visitorEmail:email,status:"pending_human",assignedTo:"",createdAt:serverTimestamp(),lastMessageAt:serverTimestamp()});
-  chatId=ref.id;
+  const existingSnap=await getDocs(query(collection(chDb,"liveSupportChats"),where("visitorUid","==",visitorUid)));
+  const openChatDoc=existingSnap.docs.find(d=>d.data().status!=="closed");
+  if(openChatDoc){
+    chatId=openChatDoc.id;
+    await updateDoc(doc(chDb,"liveSupportChats",chatId),{visitorName:name,visitorEmail:email,updatedAt:serverTimestamp()});
+  }else{
+    const ref=await addDoc(collection(chDb,"liveSupportChats"),{visitorUid,visitorName:name,visitorEmail:email,status:"pending_human",assignedTo:"",createdAt:serverTimestamp(),lastMessageAt:serverTimestamp()});
+    chatId=ref.id;
+  }
   unsubMsgs?.();
   let firstLoad=true;
   unsubMsgs=onSnapshot(query(collection(chDb,"liveSupportMessages"),where("chatId","==",chatId)),s=>{
@@ -379,8 +389,7 @@ async function startLiveChat(name,email){
         if(renderedIds.has(d.id))return;
         renderedIds.add(d.id);
         const m=d.data();
-        if(m.sender==="visitor")return; // already rendered optimistically on send
-        chAppendRow("staff",m.text);
+        chAppendRow(m.sender==="staff"?"staff":"visitor",m.text,m.sender==="staff"?"CreatorFlow Team":"You");
       });
       return;
     }
@@ -434,6 +443,17 @@ document.getElementById("cf-chat-input-area").addEventListener("click",async e=>
       await startLiveChat(name,email);
       chAppendRow("bot","Thanks "+name+"! Type your message below — our team will reply here.","Assistant");
     }catch(err){chAppendRow("bot","Something went wrong starting the chat. Please try again.","Assistant");e.target.disabled=false;e.target.textContent="Start chat"}
+  }
+  if(e.target.id==="cf-chat-end-btn"){
+    if(!chatId)return;
+    e.target.disabled=true;
+    try{
+      await updateDoc(doc(chDb,"liveSupportChats",chatId),{status:"closed",updatedAt:serverTimestamp()});
+      unsubMsgs?.();
+      chAppendRow("bot","This conversation has been closed. Feel free to start a new one anytime!","Assistant");
+      document.getElementById("cf-chat-input-area").innerHTML="";
+      chatId=null;
+    }catch(err){e.target.disabled=false;}
   }
 });
 
